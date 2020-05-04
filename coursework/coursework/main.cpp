@@ -5,32 +5,71 @@
 
 using namespace std;
 
-int getPadding(int& bit, int& Width)
+int getOutBufSize(int& width, unsigned char& bit)
 {
-  int padding;
-
   if (bit == 1)
   {
-    padding = (5 * Width) % 4;
+    return (int)ceil(width / (double)8);
   }
   else if (bit == 4)
   {
-    padding = (4 * Width) % 4;
+    return (int)ceil(width / (double)2);
   }
   else if (bit == 8)
   {
-    padding = (3 * Width) % 4;
+    return width;
   }
-  else if (bit == 16)
+  else
   {
-    padding = (2 * Width) % 4;
+    throw new invalid_argument("123");
   }
-  else if (bit == 24)
-  {
-    padding = Width % 4;
-  }
+}
 
-  return padding;
+int getPadding(int& width, unsigned char& bit)
+{
+  auto pad = getOutBufSize(width, bit) % 4;
+
+  if (pad == 0)
+    return 0;
+
+  return 4 - pad;
+}
+
+bool hasPalette(unsigned char& bit)
+{
+  return bit == 1 ||
+    bit == 4 ||
+    bit == 8;
+}
+
+DWORD getPixelsSize(int& width, int& height, unsigned char& bit)
+{
+  auto padding = getPadding(width, bit);
+ 
+  if (bit == 1)
+  {
+    return (width * height) / 8 + padding * height;
+  }
+  else if (bit == 4)
+  {
+    return (width * height) / 2 + padding * height;
+  }
+  else if (bit == 8)
+  {
+    return width * height + padding * height;
+  }
+  else
+  {
+    throw new invalid_argument("123");
+  }
+}
+
+int getPaletteSizeInBytes(int paletteSize, unsigned char& bit)
+{
+  if (!hasPalette(bit))
+    return 0;
+
+  return sizeof(RGBQUAD) * paletteSize;
 }
 
 void getPaletteFor8Bit(RGBQUAD* Palette)
@@ -51,6 +90,8 @@ void getPaletteFor8Bit(RGBQUAD* Palette)
 
 void getPaletteFor4Bit(RGBQUAD* Palette)
 {
+  // TODO: amend palette
+  
   Palette[0].rgbRed = 0x00;
   Palette[0].rgbGreen = 0x00;
   Palette[0].rgbBlue = 0x00;
@@ -127,125 +168,202 @@ void getPaletteFor1Bit(RGBQUAD* Palette)
   Palette[1].rgbBlue = 0xFF;
 }
 
-void pixelConversionFor8Bit(BYTE* outBuf, RGBTRIPLE* inBuf, int& j)
+void addPadding(int& width, HANDLE& hOutFile, unsigned char& bit)
 {
-  outBuf[j] = 32 * (inBuf[j].rgbtRed / 32) + 4 * (inBuf[j].rgbtGreen / 32) + inBuf[j].rgbtBlue / 64;
-}
+  DWORD RW;
+ 
+  auto paddingSize = getPadding(width, bit);
 
-void pixelConversationFor4Bit(BYTE* outBuf, RGBTRIPLE* inBuf, int& j)
-{
-  outBuf[j] = 0.01 * inBuf[j].rgbtRed + 0.1 * inBuf[j].rgbtGreen + 0.01 * inBuf[j].rgbtBlue;
-}
-
-void pixelConversationFor1Bit(BYTE* outBuf, RGBTRIPLE* inBuf, int& j, int& error)
-{
-  auto average = (inBuf[j].rgbtRed + inBuf[j].rgbtGreen + inBuf[j].rgbtBlue) / 3;
-
-  outBuf[j] = average > 128 ? 1 : 0;
-}
-
-void pixelConversion(int& Width, int& Height, HANDLE& hInputFile, HANDLE& hOutFile,
-                     BYTE* outBuf, RGBTRIPLE* inBuf, DWORD& RW, RGBQUAD Palette[],
-                     int& size, int& padding)
-{
-  for (int i = 0; i < Height; ++i)
+  for (auto t = 0; t < paddingSize; t++)
   {
-    ReadFile(hInputFile, inBuf, sizeof(RGBTRIPLE) * Width, &RW, NULL);
+    BYTE* padByte = new BYTE;
+    *padByte = 0;
 
-    auto mask = new char[8];
+    WriteFile(hOutFile, padByte, 1, &RW, NULL);
+  }
+}
+
+void pixelConversionTo1Bit(int& width,
+  int& height,
+  HANDLE& hInputFile,
+  HANDLE& hOutFile,
+  BYTE* outBuf,
+  RGBTRIPLE* inBuf,
+  RGBQUAD Palette[])
+{
+  DWORD RW;
+  unsigned char bit = 1;
+ 
+  for (int i = 0; i < height; ++i)
+  {
+    ReadFile(hInputFile, inBuf, sizeof(RGBTRIPLE) * width, &RW, NULL);
+
+    auto pixelMask = new char[8];
     int maskIndex = 0;
-    int index = 0;
+    int outIndex = 0;
 
-    for (int j = 0; j < Width; ++j)
+    for (int j = 0; j < width; ++j)
     {
       auto average = (inBuf[j].rgbtRed + inBuf[j].rgbtGreen + inBuf[j].rgbtBlue) / 3;
 
-      mask[maskIndex] = average > 128 ? 1 : 0;
+      pixelMask[maskIndex] = average > 128 ? 1 : 0;
 
       maskIndex++;
 
       if (maskIndex == 8)
       {
-        BYTE test = 0;
+        BYTE resultByte = 0;
 
         for (auto k = 0; k < 8; k++)
         {
           if (k != 0)
-            test = test << 1;
+            resultByte = resultByte << 1;
 
-          test |= (mask[k] == 1 ? 0x01 : 0x00);
+          resultByte |= (pixelMask[k] == 1 ? 0x01 : 0x00);
         }
 
-        outBuf[index] = test;
-        //outBuf[index] = 0;
-        index++;
+        outBuf[outIndex] = resultByte;
+
+        outIndex++;
         maskIndex = 0;
       }
-      
-      //pixelConversationFor1Bit(outBuf, inBuf, j, error);
-      //out << (short)outBuf[j];
-     
-      //out << "=======================================================================" << endl;
-      //out << (short)inBuf[j].rgbtRed << " " << (short)inBuf[j].rgbtGreen << " " << (short)inBuf[j].rgbtBlue << endl;
     }
 
     if (maskIndex != 0)
     {
-      BYTE test = 0;
+      BYTE resultByte = 0;
 
       for (auto k = 0; k < maskIndex; k++)
       {
         if (k != 0)
-          test = test << 1;
+          resultByte = resultByte << 1;
 
-        test |= (mask[k] == 1 ? 0x01 : 0x00);
+        resultByte |= (pixelMask[k] == 1 ? 0x01 : 0x00);
       }
 
-      outBuf[index] = (test << 8 - maskIndex);
+      outBuf[outIndex] = (resultByte << 8 - maskIndex);
       maskIndex = 0;
     }
 
-    delete[] mask;
+    delete[] pixelMask;
 
-    WriteFile(hOutFile, outBuf, sizeof(BYTE) * (int)ceil(Width / (double)8), &RW, NULL);
+    WriteFile(hOutFile, outBuf, sizeof(BYTE) * getOutBufSize(width, bit), &RW, NULL);
 
-    auto pad = ((int)ceil(Width / (double)8)) % 4;
-
-    if (pad != 0)
-      pad = 4 - pad;
-
-    for (auto t = 0; t < pad; t++)
-    {
-      BYTE* padByte = new BYTE;
-      *padByte = 0;
-      WriteFile(hOutFile, padByte, 1, &RW, NULL);
-    }
-
-    // Пишем мусор для выравнивания
-    
-    //SetFilePointer(hInputFile, Width % 4, NULL, FILE_CURRENT);
+    addPadding(width, hOutFile, bit);
   }
 }
 
-void withPalette(string fileName)
+void pixelConversionTo4Bit(int& width,
+  int& height,
+  HANDLE& hInputFile,
+  HANDLE& hOutFile,
+  BYTE* outBuf,
+  RGBTRIPLE* inBuf,
+  RGBQUAD Palette[])
 {
-  //string fileName;
+  DWORD RW;
+  unsigned char bit = 4;
+
+  for (int i = 0; i < height; ++i)
+  {
+    ReadFile(hInputFile, inBuf, sizeof(RGBTRIPLE) * width, &RW, NULL);
+
+    auto pixelMask = new char[2];
+    int maskIndex = 0;
+    int outIndex = 0;
+
+    for (int j = 0; j < width; ++j)
+    {
+      auto sum = inBuf[j].rgbtRed + inBuf[j].rgbtGreen + inBuf[j].rgbtBlue;
+
+      pixelMask[maskIndex] = (int)floor(sum * 15 / (3 * 255));
+
+      maskIndex++;
+
+      if (maskIndex == 2)
+      {
+        BYTE resultByte = 0;
+
+        for (auto k = 0; k < 2; k++)
+        {
+          if (k != 0)
+            resultByte = resultByte << 1;
+
+          resultByte |= pixelMask[k];
+        }
+
+        outBuf[outIndex] = resultByte;
+
+        outIndex++;
+        maskIndex = 0;
+      }
+    }
+
+    if (maskIndex != 0)
+    {
+      BYTE resultByte = 0;
+
+      for (auto k = 0; k < maskIndex; k++)
+      {
+        if (k != 0)
+          resultByte = resultByte << 1;
+
+        resultByte |= pixelMask[k];
+      }
+
+      outBuf[outIndex] = (resultByte << 2 - maskIndex);
+      maskIndex = 0;
+    }
+
+    delete[] pixelMask;
+
+    WriteFile(hOutFile, outBuf, sizeof(BYTE) * getOutBufSize(width, bit), &RW, NULL);
+
+    addPadding(width, hOutFile, bit);
+  }
+}
+
+void pixelConversionTo8Bit(int& width,
+  int& height,
+  HANDLE& hInputFile,
+  HANDLE& hOutFile,
+  BYTE* outBuf,
+  RGBTRIPLE* inBuf,
+  RGBQUAD Palette[])
+{
+  DWORD RW;
+  unsigned char bit = 8;
+
+  for (int i = 0; i < height; ++i)
+  {
+    ReadFile(hInputFile, inBuf, sizeof(RGBTRIPLE) * width, &RW, NULL);
+
+    for (int j = 0; j < width; ++j)
+    {
+      outBuf[j] = 32 * (inBuf[j].rgbtRed / 32) + 4 * (inBuf[j].rgbtGreen / 32) + inBuf[j].rgbtBlue / 64;
+    }
+
+    WriteFile(hOutFile, outBuf, sizeof(BYTE) * getOutBufSize(width, bit), &RW, NULL);
+
+    addPadding(width, hOutFile, bit);
+  }
+}
+
+void convert(string& fileName, unsigned char& bit)
+{
   BITMAPFILEHEADER bmpFileHeader;
   BITMAPINFOHEADER bmpInfoHeader;
-  int Width, Height;
+  int width, height;
   RGBTRIPLE* inBuf;
   BYTE* outBuf;
   HANDLE hInputFile, hOutFile;
   DWORD RW;
 
-  int bit = 1;
-  int size = pow(2, bit);
-  RGBQUAD* Palette = new RGBQUAD[size];
+  int paleteSize = (int) pow(2, bit);
+  RGBQUAD* palette = new RGBQUAD[paleteSize];
 
-  //cout << "Enter the full name, please: ";
-  //cin >> fileName;
-  auto temp = wstring(fileName.begin(), fileName.end());
-  hInputFile = CreateFile(temp.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+  auto wstrfileName = wstring(fileName.begin(), fileName.end());
+  hInputFile = CreateFile(wstrfileName.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
 
   if (hInputFile == INVALID_HANDLE_VALUE)
     return;
@@ -266,56 +384,81 @@ void withPalette(string fileName)
 
   // Установим указатель на начало растра
   SetFilePointer(hInputFile, bmpFileHeader.bfOffBits, NULL, FILE_BEGIN);
-  Width = bmpInfoHeader.biWidth;
-  Height = bmpInfoHeader.biHeight;
+  width = bmpInfoHeader.biWidth;
+  height = bmpInfoHeader.biHeight;
 
   // Выделим память
-  inBuf = new RGBTRIPLE[Width];
-  auto outBufSize = (int)ceil(Width / (double)8);
-  outBuf = new BYTE[outBufSize];
+  inBuf = new RGBTRIPLE[width];
+  auto temp = getOutBufSize(width, bit);
+  outBuf = new BYTE[temp];
 
   // Заполним заголовки
-  int padding = getPadding(bit, Width);
- 
   bmpInfoHeader.biBitCount = bit;
-  bmpInfoHeader.biSizeImage = (Width * Height) / 8 + ((int)ceil(Width / (double)8) % 4 * Height);
+  bmpInfoHeader.biSizeImage = getPixelsSize(width, height, bit);
   bmpInfoHeader.biCompression = 0;
 
-  bmpFileHeader.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + 4 * size;
+  int paletteSizeInBytes = getPaletteSizeInBytes(paleteSize, bit);
+
+  bmpFileHeader.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + paletteSizeInBytes;
   bmpFileHeader.bfSize = bmpFileHeader.bfOffBits + bmpInfoHeader.biSizeImage;
-  
+
   // Запишем заголовки
   WriteFile(hOutFile, &bmpFileHeader, sizeof(bmpFileHeader), &RW, NULL);
   WriteFile(hOutFile, &bmpInfoHeader, sizeof(bmpInfoHeader), &RW, NULL);
 
-  // Палитра
-  //getPalette(bmpInfoHeader.biBitCount, size, Palette, maxEl, out);
-  getPaletteFor1Bit(Palette);
+  if (bit == 1)
+  {
+    getPaletteFor1Bit(palette);
+  }
+  else if (bit == 4)
+  {
+    getPaletteFor4Bit(palette);
+  }
+  else if (bit == 8)
+  {
+    getPaletteFor8Bit(palette);
+  }
+  else
+  {
+    throw new invalid_argument("123");
+  }
 
-  WriteFile(hOutFile, Palette, size * sizeof(RGBQUAD), &RW, NULL);
+  if (hasPalette(bit))
+  {
+    WriteFile(hOutFile, palette, paletteSizeInBytes, &RW, NULL);
+  }
 
-  // Начнем преобразовывать
-  pixelConversion(Width, Height, hInputFile, hOutFile,
-                  outBuf, inBuf, RW, Palette, size, padding);
+  if (bit == 1)
+  {
+    pixelConversionTo1Bit(width, height, hInputFile, hOutFile, outBuf, inBuf, palette);
+  }
+  else if (bit == 4)
+  {
+    pixelConversionTo4Bit(width, height, hInputFile, hOutFile, outBuf, inBuf, palette);
+  }
+  else if (bit == 8)
+  {
+    pixelConversionTo8Bit(width, height, hInputFile, hOutFile, outBuf, inBuf, palette);
+  }
+  else
+  {
+    throw new invalid_argument("123");
+  }
 
   delete[] inBuf;
   delete[] outBuf;
+
   CloseHandle(hInputFile);
   CloseHandle(hOutFile);
-
-  //cout << "Updating has come to the end successfully!";
-}
-
-void withoutPalette()
-{
-
 }
 
 int main()
 {
   string fileName = "C:\\University\\Repositories\\CompArch\\coursework\\coursework\\1.bmp";
-  
-  withPalette(fileName);
+  unsigned char bit = 4;
+  //withPalette(fileName);
+
+  convert(fileName, bit);
 
   return 0;
 }
