@@ -1,11 +1,14 @@
-#include <windows.h>
-#include <iostream>
-#include <string>
-#include <math.h>
+#include "convert.h"
 
 using namespace std;
 
-int getOutBufSize(int& width, unsigned char& bit)
+/*struct Pixel16
+{
+  BYTE s;
+  BYTE f;
+};*/
+
+/*int getOutBufSize(int& width, unsigned char& bit)
 {
   if (bit == 1)
   {
@@ -19,13 +22,17 @@ int getOutBufSize(int& width, unsigned char& bit)
   {
     return width;
   }
+  else if (bit == 16)
+  {
+    return width;
+  }
   else
   {
-    throw new invalid_argument("123");
+    throw new invalid_argument("Error");
   }
-}
+}*/
 
-int getPadding(int& width, unsigned char& bit)
+/*int getPadding(int& width, unsigned char& bit)
 {
   auto pad = getOutBufSize(width, bit) % 4;
 
@@ -33,16 +40,14 @@ int getPadding(int& width, unsigned char& bit)
     return 0;
 
   return 4 - pad;
-}
+}*/
 
-bool hasPalette(unsigned char& bit)
+/*bool hasPalette(unsigned char& bit)
 {
-  return bit == 1 ||
-    bit == 4 ||
-    bit == 8;
-}
+  return bit == 1 || bit == 4 || bit == 8;
+}*/
 
-DWORD getPixelsSize(int& width, int& height, unsigned char& bit)
+/*DWORD getPixelsSize(int& width, int& height, unsigned char& bit)
 {
   auto padding = getPadding(width, bit);
  
@@ -58,21 +63,25 @@ DWORD getPixelsSize(int& width, int& height, unsigned char& bit)
   {
     return width * height + padding * height;
   }
+  else if (bit == 16)
+  {
+    return 2 * width * height + padding * height;
+  }
   else
   {
-    throw new invalid_argument("123");
+    throw new invalid_argument("Error");
   }
-}
+}*/
 
-int getPaletteSizeInBytes(int paletteSize, unsigned char& bit)
+/*int getPaletteSizeInBytes(int paletteSize, unsigned char& bit)
 {
   if (!hasPalette(bit))
     return 0;
 
   return sizeof(RGBQUAD) * paletteSize;
-}
+}*/
 
-void getPaletteFor8Bit(RGBQUAD* Palette)
+/*void getPaletteFor8Bit(RGBQUAD* Palette)
 {
   for (int i = 0; i < 8; ++i)
   {
@@ -86,78 +95,76 @@ void getPaletteFor8Bit(RGBQUAD* Palette)
       }
     }
   }
-}
+}*/
 
-void getPaletteFor4Bit(RGBQUAD* Palette)
+/*void getPaletteFor4Bit(RGBQUAD* Palette)
 {
-  // TODO: amend palette
-  
   Palette[0].rgbRed = 0x00;
   Palette[0].rgbGreen = 0x00;
   Palette[0].rgbBlue = 0x00;
 
-  Palette[1].rgbRed = 0x14;
-  Palette[1].rgbGreen = 0x14;
-  Palette[1].rgbBlue = 0x14;
+  Palette[1].rgbRed = 128;
+  Palette[1].rgbGreen = 0;
+  Palette[1].rgbBlue = 0;
 
-  Palette[2].rgbRed = 0x20;
-  Palette[2].rgbGreen = 0x20;
-  Palette[2].rgbBlue = 0x20;
+  Palette[2].rgbRed = 255;
+  Palette[2].rgbGreen = 0;
+  Palette[2].rgbBlue = 0;
 
-  Palette[3].rgbRed = 0x2c;
-  Palette[3].rgbGreen = 0x2c;
-  Palette[3].rgbBlue = 0x2c;
+  Palette[3].rgbRed = 255;
+  Palette[3].rgbGreen = 0;
+  Palette[3].rgbBlue = 255;
 
-  Palette[4].rgbRed = 0x38;
-  Palette[4].rgbGreen = 0x38;
-  Palette[4].rgbBlue = 0x38;
+  Palette[4].rgbRed = 0;
+  Palette[4].rgbGreen = 128;
+  Palette[4].rgbBlue = 128;
 
-  Palette[5].rgbRed = 0x45;
-  Palette[5].rgbGreen = 0x45;
-  Palette[5].rgbBlue = 0x45;
+  Palette[5].rgbRed = 0;
+  Palette[5].rgbGreen = 128;
+  Palette[5].rgbBlue = 0;
 
-  Palette[6].rgbRed = 0x51;
-  Palette[6].rgbGreen = 0x51;
-  Palette[6].rgbBlue = 0x51;
+  Palette[6].rgbRed = 0;
+  Palette[6].rgbGreen = 255;
+  Palette[6].rgbBlue = 0;
 
-  Palette[7].rgbRed = 0x61;
-  Palette[7].rgbGreen = 0x61;
-  Palette[7].rgbBlue = 0x61;
+  Palette[7].rgbRed = 0;
+  Palette[7].rgbGreen = 255;
+  Palette[7].rgbBlue = 255;
 
-  Palette[8].rgbRed = 0x71;
-  Palette[8].rgbGreen = 0x71;
-  Palette[8].rgbBlue = 0x71;
+  Palette[8].rgbRed = 0;
+  Palette[8].rgbGreen = 0;
+  Palette[8].rgbBlue = 128;
 
-  Palette[9].rgbRed = 0x82;
-  Palette[9].rgbGreen = 0x82;
-  Palette[9].rgbBlue = 0x82;
+  Palette[9].rgbRed = 128;
+  Palette[9].rgbGreen = 0;
+  Palette[9].rgbBlue = 128;
 
-  Palette[10].rgbRed = 0x92;
-  Palette[10].rgbGreen = 0x92;
-  Palette[10].rgbBlue = 0x92;
+  Palette[10].rgbRed = 0;
+  Palette[10].rgbGreen = 0;
+  Palette[10].rgbBlue = 255;
 
-  Palette[11].rgbRed = 0xa2;
-  Palette[11].rgbGreen = 0xa2;
-  Palette[11].rgbBlue = 0xa2;
+  Palette[11].rgbRed = 192;
+  Palette[11].rgbGreen = 192;
+  Palette[11].rgbBlue = 192;
 
-  Palette[12].rgbRed = 0xb6;
-  Palette[12].rgbGreen = 0xb6;
-  Palette[12].rgbBlue = 0xb6;
+  Palette[12].rgbRed = 128;
+  Palette[12].rgbGreen = 128;
+  Palette[12].rgbBlue = 128;
 
-  Palette[13].rgbRed = 0xcb;
-  Palette[13].rgbGreen = 0xcb;
-  Palette[13].rgbBlue = 0xcb;
+  Palette[13].rgbRed = 128;
+  Palette[13].rgbGreen = 128;
+  Palette[13].rgbBlue = 0;
 
-  Palette[14].rgbRed = 0xe3;
-  Palette[14].rgbGreen = 0xe3;
-  Palette[14].rgbBlue = 0xe3;
+  Palette[14].rgbRed = 255;
+  Palette[14].rgbGreen = 255;
+  Palette[14].rgbBlue = 0;
 
-  Palette[15].rgbRed = 0xff;
-  Palette[15].rgbGreen = 0xff;
-  Palette[15].rgbBlue = 0xff;
-}
+  Palette[15].rgbRed = 255;
+  Palette[15].rgbGreen = 255;
+  Palette[15].rgbBlue = 255;
+}*/
 
-void getPaletteFor1Bit(RGBQUAD* Palette)
+/*void getPaletteFor1Bit(RGBQUAD* Palette)
 {
   Palette[0].rgbRed = 0x00;
   Palette[0].rgbGreen = 0x00;
@@ -166,12 +173,11 @@ void getPaletteFor1Bit(RGBQUAD* Palette)
   Palette[1].rgbRed = 0xFF;
   Palette[1].rgbGreen = 0xFF;
   Palette[1].rgbBlue = 0xFF;
-}
+}*/
 
-void addPadding(int& width, HANDLE& hOutFile, unsigned char& bit)
+/*void addPadding(int& width, HANDLE& hOutFile, unsigned char& bit)
 {
   DWORD RW;
- 
   auto paddingSize = getPadding(width, bit);
 
   for (auto t = 0; t < paddingSize; t++)
@@ -181,15 +187,10 @@ void addPadding(int& width, HANDLE& hOutFile, unsigned char& bit)
 
     WriteFile(hOutFile, padByte, 1, &RW, NULL);
   }
-}
+}*/
 
-void pixelConversionTo1Bit(int& width,
-  int& height,
-  HANDLE& hInputFile,
-  HANDLE& hOutFile,
-  BYTE* outBuf,
-  RGBTRIPLE* inBuf,
-  RGBQUAD Palette[])
+/*void pixelConversionTo1Bit(int& width, int& height, HANDLE& hInputFile,HANDLE& hOutFile,
+                           BYTE* outBuf, RGBTRIPLE* inBuf, RGBQUAD Palette[])
 {
   DWORD RW;
   unsigned char bit = 1;
@@ -248,18 +249,12 @@ void pixelConversionTo1Bit(int& width,
     delete[] pixelMask;
 
     WriteFile(hOutFile, outBuf, sizeof(BYTE) * getOutBufSize(width, bit), &RW, NULL);
-
     addPadding(width, hOutFile, bit);
   }
-}
+}*/
 
-void pixelConversionTo4Bit(int& width,
-  int& height,
-  HANDLE& hInputFile,
-  HANDLE& hOutFile,
-  BYTE* outBuf,
-  RGBTRIPLE* inBuf,
-  RGBQUAD Palette[])
+/*void pixelConversionTo4Bit(int& width, int& height, HANDLE& hInputFile, HANDLE& hOutFile,
+                           BYTE* outBuf, RGBTRIPLE* inBuf, RGBQUAD Palette[])
 {
   DWORD RW;
   unsigned char bit = 4;
@@ -318,18 +313,12 @@ void pixelConversionTo4Bit(int& width,
     delete[] pixelMask;
 
     WriteFile(hOutFile, outBuf, sizeof(BYTE) * getOutBufSize(width, bit), &RW, NULL);
-
     addPadding(width, hOutFile, bit);
   }
-}
+}*/
 
-void pixelConversionTo8Bit(int& width,
-  int& height,
-  HANDLE& hInputFile,
-  HANDLE& hOutFile,
-  BYTE* outBuf,
-  RGBTRIPLE* inBuf,
-  RGBQUAD Palette[])
+/*void pixelConversionTo8Bit(int& width, int& height, HANDLE& hInputFile, HANDLE& hOutFile,
+                           BYTE* outBuf, RGBTRIPLE* inBuf, RGBQUAD Palette[])
 {
   DWORD RW;
   unsigned char bit = 8;
@@ -344,18 +333,62 @@ void pixelConversionTo8Bit(int& width,
     }
 
     WriteFile(hOutFile, outBuf, sizeof(BYTE) * getOutBufSize(width, bit), &RW, NULL);
-
     addPadding(width, hOutFile, bit);
   }
+}*/
+
+BYTE convertTo5Bit(BYTE& value)
+{
+  return (BYTE) floor(value * 31 / 255);
 }
 
-void convert(string& fileName, unsigned char& bit)
+BYTE convertTo5Bit2(BYTE& value)
+{
+  return (BYTE)floor(value * 63 / 255);
+}
+
+/*void pixelConversionTo16Bit(int& width, int& height, HANDLE& hInputFile, HANDLE& hOutFile,
+                            Pixel16* outBuf, RGBTRIPLE* inBuf)
+{
+  DWORD RW;
+  unsigned char bit = 16;
+
+  for (int i = 0; i < height; ++i)
+  {
+    ReadFile(hInputFile, inBuf, sizeof(RGBTRIPLE) * width, &RW, NULL);
+ 
+    for (int j = 0; j < width; ++j)
+    {
+      /*auto red = convertTo5Bit(inBuf[j].rgbtRed);
+      auto green = convertTo5Bit2(inBuf[j].rgbtGreen);
+      auto blue = convertTo5Bit(inBuf[j].rgbtBlue);*/
+
+     /* auto red = (inBuf[j].rgbtRed * 100 + 505) >> 10;//253
+      auto green = (inBuf[j].rgbtGreen * 100 + 505) >> 10;
+      auto blue = (inBuf[j].rgbtBlue * 100 + 505) >> 10;
+
+      // blue, green, red 0
+
+      outBuf[j].s = blue;
+      outBuf[j].s = (outBuf[j].s << 3) | green & 0x1c;
+      outBuf[j].f = green & 0x03;
+      outBuf[j].f = (outBuf[j].f << 5) | red;
+      outBuf[j].f = (outBuf[j].f << 1) & 0xfe;
+    }
+
+    WriteFile(hOutFile, outBuf, sizeof(Pixel16) * getOutBufSize(width, bit), &RW, NULL);
+    addPadding(width, hOutFile, bit);
+  }
+}*/
+
+/*void convert(string& fileName, unsigned char& bit)
 {
   BITMAPFILEHEADER bmpFileHeader;
   BITMAPINFOHEADER bmpInfoHeader;
   int width, height;
   RGBTRIPLE* inBuf;
-  BYTE* outBuf;
+  BYTE* outBuf = nullptr;
+  Pixel16* outBuf16 = nullptr;
   HANDLE hInputFile, hOutFile;
   DWORD RW;
 
@@ -389,8 +422,15 @@ void convert(string& fileName, unsigned char& bit)
 
   // Выделим память
   inBuf = new RGBTRIPLE[width];
-  auto temp = getOutBufSize(width, bit);
-  outBuf = new BYTE[temp];
+  
+  if (bit != 16)
+  {
+    outBuf = new BYTE[getOutBufSize(width, bit)];
+  }
+  else
+  {
+    outBuf16 = new Pixel16[getOutBufSize(width, bit)];
+  }
 
   // Заполним заголовки
   bmpInfoHeader.biBitCount = bit;
@@ -406,25 +446,25 @@ void convert(string& fileName, unsigned char& bit)
   WriteFile(hOutFile, &bmpFileHeader, sizeof(bmpFileHeader), &RW, NULL);
   WriteFile(hOutFile, &bmpInfoHeader, sizeof(bmpInfoHeader), &RW, NULL);
 
-  if (bit == 1)
-  {
-    getPaletteFor1Bit(palette);
-  }
-  else if (bit == 4)
-  {
-    getPaletteFor4Bit(palette);
-  }
-  else if (bit == 8)
-  {
-    getPaletteFor8Bit(palette);
-  }
-  else
-  {
-    throw new invalid_argument("123");
-  }
-
   if (hasPalette(bit))
   {
+    if (bit == 1)
+    {
+      getPaletteFor1Bit(palette);
+    }
+    else if (bit == 4)
+    {
+      getPaletteFor4Bit(palette);
+    }
+    else if (bit == 8)
+    {
+      getPaletteFor8Bit(palette);
+    }
+    else
+    {
+      throw new invalid_argument("123");
+    }
+    
     WriteFile(hOutFile, palette, paletteSizeInBytes, &RW, NULL);
   }
 
@@ -440,6 +480,10 @@ void convert(string& fileName, unsigned char& bit)
   {
     pixelConversionTo8Bit(width, height, hInputFile, hOutFile, outBuf, inBuf, palette);
   }
+  else if (bit == 16)
+  {
+    pixelConversionTo16Bit(width, height, hInputFile, hOutFile, outBuf16, inBuf);
+  }
   else
   {
     throw new invalid_argument("123");
@@ -450,14 +494,12 @@ void convert(string& fileName, unsigned char& bit)
 
   CloseHandle(hInputFile);
   CloseHandle(hOutFile);
-}
+}*/
 
-int main()
+int main(int argc, char* argv[])
 {
-  string fileName = "C:\\University\\Repositories\\CompArch\\coursework\\coursework\\1.bmp";
-  unsigned char bit = 4;
-  //withPalette(fileName);
-
+  string fileName = argv[1];
+  unsigned char bit = stoi(argv[2]);
   convert(fileName, bit);
 
   return 0;

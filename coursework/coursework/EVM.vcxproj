@@ -139,7 +139,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="16Bit.cpp" />
+    <ClCompile Include="1Bit.cpp" />
+    <ClCompile Include="4Bit.cpp" />
+    <ClCompile Include="8Bit.cpp" />
+    <ClCompile Include="convert.cpp" />
+    <ClCompile Include="getOutBufSize.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="padding.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="16Bit.h" />
+    <ClInclude Include="1Bit.h" />
+    <ClInclude Include="4Bit.h" />
+    <ClInclude Include="8Bit.h" />
+    <ClInclude Include="convert.h" />
+    <ClInclude Include="getOutBufSize.h" />
+    <ClInclude Include="padding.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
