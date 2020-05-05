@@ -2,6 +2,8 @@
 #include "getOutBufSize.h"
 #include "padding.h"
 
+#include <math.h>
+
 void pixelConversionTo16Bit(int& width, int& height, HANDLE& hInputFile, HANDLE& hOutFile,
   Pixel16* outBuf, RGBTRIPLE* inBuf)
 {
@@ -14,15 +16,19 @@ void pixelConversionTo16Bit(int& width, int& height, HANDLE& hInputFile, HANDLE&
 
     for (int j = 0; j < width; ++j)
     {
-      auto red = (inBuf[j].rgbtRed * 100 + 505) >> 10;//253
-      auto green = (inBuf[j].rgbtGreen * 100 + 505) >> 10;
-      auto blue = (inBuf[j].rgbtBlue * 100 + 505) >> 10;
+      auto red = (BYTE)round(inBuf[j].rgbtRed * (double)31 / (double)255);
+      auto green = (BYTE)round(inBuf[j].rgbtGreen * (double)31 / (double)255);
+      auto blue = (BYTE)round(inBuf[j].rgbtBlue * (double)31 / (double)255);
+
+      auto greenFirst = (green & 0x07) << 5;
+      auto greenSecond = (green >> 3);
 
       outBuf[j].first = blue;
-      outBuf[j].first = (outBuf[j].first << 3) | green & 0x1c;
-      outBuf[j].second = green & 0x03;
-      outBuf[j].second = (outBuf[j].second << 5) | red;
-      outBuf[j].second = (outBuf[j].second << 1) & 0xfe;
+      outBuf[j].first |= greenFirst;
+
+      outBuf[j].second = red;
+      outBuf[j].second = (outBuf[j].second << 2);
+      outBuf[j].second |= greenSecond;
     }
 
     WriteFile(hOutFile, outBuf, sizeof(Pixel16) * getOutBufSize(width, bit), &RW, NULL);

@@ -128,7 +128,7 @@ void convert(std::string& fileName, unsigned char& bit)
     }
     else
     {
-      throw new std::invalid_argument("123");
+      throw new std::invalid_argument("Error");
     }
 
     WriteFile(hOutFile, palette, paletteSizeInBytes, &RW, NULL);
