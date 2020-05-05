@@ -100,9 +100,9 @@ void pixelConversionTo4Bit(int& width, int& height, HANDLE& hInputFile, HANDLE& 
         for (auto k = 0; k < 2; k++)
         {
           if (k != 0)
-            resultByte = resultByte << 1;
-
-          resultByte |= pixelMask[k];
+            resultByte |= pixelMask[k];
+          else
+            resultByte |= (pixelMask[k] << 4);
         }
 
         outBuf[outIndex] = resultByte;
@@ -119,9 +119,9 @@ void pixelConversionTo4Bit(int& width, int& height, HANDLE& hInputFile, HANDLE& 
       for (auto k = 0; k < maskIndex; k++)
       {
         if (k != 0)
-          resultByte = resultByte << 1;
-
-        resultByte |= pixelMask[k];
+          resultByte |= pixelMask[k];
+        else
+          resultByte |= (pixelMask[k] << 4);
       }
 
       outBuf[outIndex] = (resultByte << 2 - maskIndex);
