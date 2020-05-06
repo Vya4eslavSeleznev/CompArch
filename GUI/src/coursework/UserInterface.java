@@ -43,7 +43,7 @@ public class UserInterface
       {
         String bit;
         String commandValue = (String) comboBit.getSelectedItem();
-        String pathToImage = pathField.getText();//C:\\University\\Repositories\\CompArch\\coursework\\coursework\\1.bmp
+        String pathToImage = pathField.getText();
         pathToImage = pathToImage.trim();
         errorLabel.setText("");
 
