@@ -2,7 +2,7 @@
 
 ---
 
-![Gif](https://github.com/Vya4eslavSeleznev/CompArch/docs/bmpConverter.gif)
+![Gif](https://github.com/Vya4eslavSeleznev/CompArch/blob/develop/docs/bmpConverter.gif)
 
 ---
 
